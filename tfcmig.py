@@ -4,16 +4,18 @@ import logging
 import argparse
 import pytfc
 import json
+import ssl
 import hashlib
 import base64
 
 # Environment Variables
 SRC_TFE_HOSTNAME = os.getenv('SRC_TFE_HOSTNAME')
 SRC_TFE_TOKEN = os.getenv('SRC_TFE_TOKEN')
-SRC_TFE_ORG = os.getenv('SRC_TFE_ORG') 
+SRC_TFE_ORG = os.getenv('SRC_TFE_ORG')
+SRC_TFE_VERIFY = os.getenv('SRC_TFE_VERIFY', False)
 
-DST_TFC_TOKEN = os.getenv('DST_TFC_TOKEN')
 DST_TFC_HOSTNAME = os.getenv('DST_TFC_HOSTNAME', 'app.terraform.io')
+DST_TFC_TOKEN = os.getenv('DST_TFC_TOKEN')
 DST_TFC_ORG = os.getenv('DST_TFC_ORG')
 
 # Constants
@@ -24,6 +26,11 @@ def migrate_all_states(src_client, dst_client, workspaces):
     logger = logging.getLogger(LOGGER)
     logger.info("Preparing to migrate all State Versions of Workspaces...")
 
+    context = ssl.create_default_context()
+    if SRC_TFE_VERIFY is False:
+        context.check_hostname = False
+        context.verify_mode = ssl.CERT_NONE
+
     ws_objects = _get_workspaces(client=src_client, workspaces=workspaces)
     total_ws = len(ws_objects)
     logger.info(f"Total Workspaces gathered: {total_ws}")
@@ -33,7 +40,6 @@ def migrate_all_states(src_client, dst_client, workspaces):
         dst_state_versions = None
 
         ws_name = ws['attributes']['name']
-        print(ws['id'])
         src_client.set_ws(name=ws_name)
         dst_client.set_ws(name=ws_name)
 
@@ -44,7 +50,7 @@ def migrate_all_states(src_client, dst_client, workspaces):
 
         for src_sv in reversed(src_state_versions):
             src_state_url = src_sv['attributes']['hosted-state-download-url']
-            src_state_obj = src_client.state_versions.download(url=src_state_url)
+            src_state_obj = src_client.state_versions.download(url=src_state_url, context=context)
             src_state_json = json.loads(src_state_obj)
             src_state_serial = src_state_json['serial']
             src_state_lineage = src_state_json['lineage']
@@ -80,6 +86,11 @@ def migrate_current_state(src_client, dst_client, workspaces):
     logger = logging.getLogger(LOGGER)
     logger.info("Preparing to migrate current State Version of Workspaces...")
 
+    context = ssl.create_default_context()
+    if SRC_TFE_VERIFY is False:
+        context.check_hostname = False
+        context.verify_mode = ssl.CERT_NONE
+
     ws_objects = _get_workspaces(client=src_client, workspaces=workspaces)
     total_ws = len(ws_objects)
     logger.info(f"Total Workspaces gathered: {total_ws}")
@@ -104,7 +115,7 @@ def migrate_current_state(src_client, dst_client, workspaces):
             continue
 
         src_state_url = src_sv['data']['attributes']['hosted-state-download-url']
-        src_state_obj = src_client.state_versions.download(url=src_state_url)
+        src_state_obj = src_client.state_versions.download(url=src_state_url, context=context)
         src_state_json = json.loads(src_state_obj)
         src_state_serial = src_state_json['serial']
         src_state_lineage = src_state_json['lineage']
