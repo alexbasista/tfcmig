@@ -64,9 +64,8 @@ def migrate_all_states(src_client, dst_client, workspaces):
 
         for src_sv in reversed(src_state_versions):
             src_state_url = src_sv['attributes']['hosted-state-download-url']
-            #src_state_obj = src_client.state_versions.download(url=src_state_url, context=context)
-            print("ATTEMPTING TO DOWNLOAD SOURCE STATE FROM TFE.")
-            src_state_dl = request.urlopen(url=src_state_url, data=None, context=context)
+            src_state_req = request.Request(url=src_state_url, headers={'User-Agent': 'Mozilla/5.0'}, data=None)
+            src_state_dl = request.urlopen(src_state_req, context=context)
             src_state_obj = src_state_dl.read()
             src_state_json = json.loads(src_state_obj)
             src_state_serial = src_state_json['serial']
@@ -143,7 +142,9 @@ def migrate_current_state(src_client, dst_client, workspaces):
             continue
 
         src_state_url = src_sv['data']['attributes']['hosted-state-download-url']
-        src_state_obj = src_client.state_versions.download(url=src_state_url, context=context)
+        src_state_req = request.Request(url=src_state_url, headers={'User-Agent': 'Mozilla/5.0'}, data=None)
+        src_state_dl = request.urlopen(src_state_req, context=context)
+        src_state_obj = src_state_dl.read()
         src_state_json = json.loads(src_state_obj)
         src_state_serial = src_state_json['serial']
         src_state_lineage = src_state_json['lineage']
