@@ -67,10 +67,10 @@ def migrate_all_states(src_client, dst_client, workspaces):
             
             if ADD_USER_AGENT_HEADERS:
                 src_state_obj = src_client.state_versions.download(
-                    url=src_state_url, context=context)
+                    url=src_state_url, context=context, headers=USER_AGENT_HEADERS)
             else:
                 src_state_obj = src_client.state_versions.download(
-                    url=src_state_url, context=context, headers=USER_AGENT_HEADERS)
+                    url=src_state_url, context=context)
             
             src_state_json = json.loads(src_state_obj)
             src_state_serial = src_state_json['serial']
@@ -150,10 +150,10 @@ def migrate_current_state(src_client, dst_client, workspaces):
         
         if ADD_USER_AGENT_HEADERS:
             src_state_obj = src_client.state_versions.download(
-                url=src_state_url, context=context)
+                url=src_state_url, context=context, headers=USER_AGENT_HEADERS)
         else:
             src_state_obj = src_client.state_versions.download(
-                url=src_state_url, context=context, headers=USER_AGENT_HEADERS)
+                url=src_state_url, context=context)
 
         src_state_json = json.loads(src_state_obj)
         src_state_serial = src_state_json['serial']
@@ -176,10 +176,18 @@ def migrate_current_state(src_client, dst_client, workspaces):
         
     logger.info(f"Migration of current State Versions completed.")
 
+def _is_ws_locked(client, ws_name):
+    logger = logging.getLogger(LOGGER)
+    ws = None
+
+    logger.debug(f"Checking if {ws_name} is locked.")
+    ws = client.workspaces.show(name=ws_name)
+    locked = ws.json()['data']['attributes']['locked']
+    
+    return locked
 
 def _get_workspaces(client, workspaces):
     logger = logging.getLogger(LOGGER)
-
     ws_objects = []
 
     if workspaces != 'all':
