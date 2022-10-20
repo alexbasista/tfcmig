@@ -20,6 +20,8 @@ DST_TFC_ORG = os.getenv('DST_TFC_ORG')
 
 # Constants
 LOGGER = 'tfcmig'
+ADD_USER_AGENT_HEADERS = True
+USER_AGENT_HEADERS = {'User-Agent': 'Mozilla/5.0'}
 
 
 def migrate_all_states(src_client, dst_client, workspaces):
@@ -62,7 +64,14 @@ def migrate_all_states(src_client, dst_client, workspaces):
 
         for src_sv in reversed(src_state_versions):
             src_state_url = src_sv['attributes']['hosted-state-download-url']
-            src_state_obj = src_client.state_versions.download(url=src_state_url, context=context)
+            
+            if ADD_USER_AGENT_HEADERS:
+                src_state_obj = src_client.state_versions.download(
+                    url=src_state_url, context=context)
+            else:
+                src_state_obj = src_client.state_versions.download(
+                    url=src_state_url, context=context, headers=USER_AGENT_HEADERS)
+            
             src_state_json = json.loads(src_state_obj)
             src_state_serial = src_state_json['serial']
             src_state_lineage = src_state_json['lineage']
@@ -82,8 +91,8 @@ def migrate_all_states(src_client, dst_client, workspaces):
             dst_client.workspaces.lock(reason='Locked by tfcmig for migration.')
 
             logger.info(f"Creating new State Version on Workspace `{ws_name}`.")
-            dst_client.state_versions.create(serial=src_state_serial, lineage=src_state_lineage,
-                                                md5=src_state_md5, state=src_state_b64)
+            dst_client.state_versions.create(serial=src_state_serial,
+                lineage=src_state_lineage, md5=src_state_md5, state=src_state_b64)
 
             logger.info(f"Unlocking destination Workspace `{ws_name}` after state migration.")
             dst_client.workspaces.unlock()
@@ -138,7 +147,14 @@ def migrate_current_state(src_client, dst_client, workspaces):
             continue
 
         src_state_url = src_sv['data']['attributes']['hosted-state-download-url']
-        src_state_obj = src_client.state_versions.download(url=src_state_url, context=context)
+        
+        if ADD_USER_AGENT_HEADERS:
+            src_state_obj = src_client.state_versions.download(
+                url=src_state_url, context=context)
+        else:
+            src_state_obj = src_client.state_versions.download(
+                url=src_state_url, context=context, headers=USER_AGENT_HEADERS)
+
         src_state_json = json.loads(src_state_obj)
         src_state_serial = src_state_json['serial']
         src_state_lineage = src_state_json['lineage']
@@ -152,8 +168,8 @@ def migrate_current_state(src_client, dst_client, workspaces):
         dst_client.workspaces.lock(reason='Locked by tfcmig for migration.')
 
         logger.info(f"Creating new State Version on Workspace `{ws_name}`.")
-        dst_client.state_versions.create(serial=src_state_serial, lineage=src_state_lineage,
-                                            md5=src_state_md5, state=src_state_b64)
+        dst_client.state_versions.create(serial=src_state_serial,
+            lineage=src_state_lineage, md5=src_state_md5, state=src_state_b64)
 
         logger.info(f"Unlocking destination Workspace `{ws_name}` after state migration.")
         dst_client.workspaces.unlock()
