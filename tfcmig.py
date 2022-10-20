@@ -40,8 +40,20 @@ def migrate_all_states(src_client, dst_client, workspaces):
         dst_state_versions = None
 
         ws_name = ws['attributes']['name']
-        src_client.set_ws(name=ws_name)
-        dst_client.set_ws(name=ws_name)
+        
+        try:
+            src_client.set_ws(name=ws_name)
+        except Exception as e:
+            logger.error(f"Unable to set source Workspace `{ws_name}`.")
+            logger.error(e)
+            continue
+
+        try:
+            dst_client.set_ws(name=ws_name)
+        except Exception as e:
+            logger.error(f"Unable to set destination Workspace `{ws_name}`.")
+            logger.error(e)
+            continue
 
         src_state_versions = src_client.state_versions.list().json()['data']
         dst_state_versions = dst_client.state_versions.list().json()['data']
@@ -101,8 +113,19 @@ def migrate_current_state(src_client, dst_client, workspaces):
         ws_name = ws['attributes']['name']
         logger.info(f"({ws_objects.index(ws) + 1}/{total_ws}) Migrating current State Version for Workspace `{ws_name}`.")
         
-        src_client.set_ws(name=ws_name)
-        dst_client.set_ws(name=ws_name)
+        try:
+            src_client.set_ws(name=ws_name)
+        except Exception as e:
+            logger.error(f"Unable to set source Workspace `{ws_name}`.")
+            logger.error(e)
+            continue
+        
+        try:
+            dst_client.set_ws(name=ws_name)
+        except Exception as e:
+            logger.error(f"Unable to set destination Workspace `{ws_name}`.")
+            logger.error(e)
+            continue
 
         src_sv = src_client.state_versions.get_current().json()
         src_sv_serial = src_sv['data']['attributes']['serial']
