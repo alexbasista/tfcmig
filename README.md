@@ -39,3 +39,6 @@ export DST_TFC_ORG='<my-TFC-org>'
 ```
 > tfcmig.py --migrate-current-state --workspaces ws1 ws2 ws3
 ```
+
+## Troubleshooting
+- If you have more than 100 Workspaces in your Org and you are using the `--all-workspaces` arg, modify the value of `PAGE_SIZE` contstant at the top of the script to the total number of Workspaces in your Org.
