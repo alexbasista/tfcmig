@@ -101,7 +101,7 @@ def migrate_all_states(src_client, dst_client, workspaces):
             src_state_md5 = src_state_hash.hexdigest()
             src_state_b64 = base64.b64encode(src_state_obj).decode('utf-8')
 
-            logger.info(f"Creating new State Version on Workspace `{ws_name}`.")
+            logger.info(f"Creating new State Version `{src_state_serial}` on Workspace `{ws_name}`.")
             dst_client.state_versions.create(serial=src_state_serial,
                 lineage=src_state_lineage, md5=src_state_md5, state=src_state_b64)
 
@@ -188,7 +188,7 @@ def migrate_current_state(src_client, dst_client, workspaces):
         src_state_md5 = src_state_hash.hexdigest()
         src_state_b64 = base64.b64encode(src_state_obj).decode('utf-8')
 
-        logger.info(f"Creating new State Version on Workspace `{ws_name}`.")
+        logger.info(f"Creating new State Version `{src_state_serial}` on Workspace `{ws_name}`.")
         dst_client.state_versions.create(serial=src_state_serial,
             lineage=src_state_lineage, md5=src_state_md5, state=src_state_b64)
 
