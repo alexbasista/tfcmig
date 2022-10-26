@@ -11,12 +11,12 @@ export SRC_TFE_TOKEN='<my-TFE-token>'
 ```
 
 ## Usage
-- A list of Organizations via the `--orgs` argument is required.
+- A list of one or more Organizations via the `--orgs` argument is required
 - At least one additional flag is required to tell the script which TFE
   components to report on (see subsections below)
 - For a full report, pass the `--all` flag instead of individual components:
   
-  ```shell
+  ```python
   > tfcmig_discovery.py --orgs org1 org2 org3 --all
   ```
 
