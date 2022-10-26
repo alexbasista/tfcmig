@@ -17,12 +17,10 @@ export SRC_TFE_TOKEN='<my-TFE-token>'
 - For a full report, pass the `--all` flag instead of individual components:
   
   ```shell
-  >tfcmig_discovery.py --orgs org1 org2 org3 --all
+  > tfcmig_discovery.py --orgs org1 org2 org3 --all
   ```
 
-
-
 ### Registry Modules
-```shell
+```python
 > tfcmig_discovery.py --orgs org1 org2 org3 --registry-modules
 ```
