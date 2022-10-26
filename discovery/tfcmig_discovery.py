@@ -4,6 +4,7 @@ import logging
 import argparse
 import pytfc
 import pandas as pd
+from tabulate import tabulate
 
 
 # Environment Variables
@@ -103,7 +104,7 @@ def main():
     
     # display the report results
     df = pd.DataFrame(report)
-    print(df)
+    print(tabulate(df, headers='keys', tablefmt='simple'))
 
 if __name__ == "__main__":
     # setup logging
