@@ -4,7 +4,7 @@ that will assist in migration planning and execution.
 
 ## Setup
 ```shell
-pip3 install pytfc
+pip3 install pytfc, pandas, tabulate
 
 export SRC_TFE_HOSTNAME='<my-TFE-hostname>'
 export SRC_TFE_TOKEN='<my-TFE-token>'

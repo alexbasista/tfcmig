@@ -2,7 +2,7 @@
 Tooling to migrate config from TFE to TFC.
 
 ## Setup
-```
+```shell
 pip3 install pytfc
 
 export SRC_TFE_HOSTNAME='<my-TFE-hostname>'
