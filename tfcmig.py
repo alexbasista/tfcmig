@@ -61,7 +61,7 @@ def migrate_all_states(src_client, dst_client, workspaces):
             logger.error(e)
             continue
 
-        src_state_versions = src_client.state_versions.list().json()['data']
+        src_state_versions = src_client.state_versions.list(page_size=PAGE_SIZE).json()['data']
         logger.info(f"Total source State Versions found for `{ws_name}`: {len(src_state_versions)}")
         if len(src_state_versions) == 0:
             logger.info(f"Skipping `{ws_name}` as no states were found to migrate.")
