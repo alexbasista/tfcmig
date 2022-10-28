@@ -14,6 +14,8 @@ SRC_TFE_ORG = os.getenv('SRC_TFE_ORG')
 SRC_TFE_VERIFY = os.getenv('SRC_TFE_VERIFY', False)
 LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO')
 
+#Constants
+PAGE_SIZE=100
 
 def _get_oc_name(client, ot_id):
     """
@@ -40,6 +42,42 @@ def workspace_notifications_report(client):
     Function to generate report of Notification
     settings that exist on Workspaces.
     """
+
+def modules_in_workspaces_report(client):
+    """
+    Function to generate report of Workspaces
+    that have Terraform Resources in them that
+    were created from a Registry Module.
+    """
+    results = []
+    ws_results = []
+    
+    ws_list = client.workspaces.list(page_size=PAGE_SIZE)
+    for ws in ws_list.json()['data']:
+        ws_results = {}
+        ws_id = ws['id']
+        ws_name = ws['attributes']['name']
+        ws_resources = client.workspace_resources.list(
+            ws_id=ws_id, page_size=PAGE_SIZE)
+
+        wsr_results = []
+        for r in ws_resources.json()['data']:
+            mod = r['attributes']['module']
+            wsr_results.append(mod)
+
+        wsr_results = list( dict.fromkeys(wsr_results) )
+        if 'root' in wsr_results: 
+            wsr_results.remove('root')
+        
+        ws_results['Workspace'] = ws_name
+        
+        if wsr_results == []:
+            ws_results['Modules'] = 'N/A'
+        else:
+            ws_results['Modules'] = wsr_results
+        results.append(ws_results)
+
+    return results
 
 def registry_modules_report(client):
     """
@@ -80,31 +118,47 @@ def parse_args():
         help='Generate report with all source TFE components.',
         action='store_true')
     parser.add_argument('--registry-modules', dest='registry_modules',
-        help='Generate report of Registry Modules.',
+        help='Generate report of Registry Modules and their VCS info.',
         action='store_true')
-    
+    parser.add_argument('--modules-in-workspaces', dest='modules_in_workspaces',
+        help='Generate report of Modules used in Workspaces.',
+        action='store_true')
     args = parser.parse_args()
     return args
 
 def main():
     tfe_client = None
-    report = []
+    reg_mod_report = []
+    mods_in_ws_report = []
 
     for org in orgs:
         log.info(f"Instantiating API client for source TFE Org `{org}`.")
         tfe_client = pytfc.Client(hostname=SRC_TFE_HOSTNAME, token=SRC_TFE_TOKEN, org=org)
         
         if not args.all:
-            registry_results = registry_modules_report(client=tfe_client)
-            report.extend(registry_results)
+            if args.registry_modules:
+                reg_mod_results = registry_modules_report(client=tfe_client)
+                reg_mod_report.extend(reg_mod_results)
+            if args.modules_in_workspaces:
+                mods_in_ws_results = modules_in_workspaces_report(client=tfe_client)
+                mods_in_ws_report.extend(mods_in_ws_results)
         else:
             # run everything
-            registry_results = registry_modules_report(client=tfe_client)
-            report.extend(registry_results)
+            reg_mod_results = registry_modules_report(client=tfe_client)
+            reg_mod_report.extend(reg_mod_results)
+            
+            mods_in_ws_results = modules_in_workspaces_report(client=tfe_client)
+            mods_in_ws_report.extend(mods_in_ws_results)
+
     
     # display the report results
-    df = pd.DataFrame(report)
-    print(tabulate(df, headers='keys', tablefmt='simple'))
+    reg_mod_df = pd.DataFrame(reg_mod_report)
+    print(tabulate(reg_mod_df, headers='keys', tablefmt='simple'))
+
+    print('\n')
+
+    mods_in_ws_df = pd.DataFrame(mods_in_ws_report)
+    print(tabulate(mods_in_ws_df, headers='keys', tablefmt='simple'))
 
 if __name__ == "__main__":
     # setup logging
@@ -127,10 +181,11 @@ if __name__ == "__main__":
         sys.exit(1)
 
     if not args.all:
-        if not args.registry_modules:
-            log.error(\
-                "Must provide a migration component argument(s). See `Usage` section of README.")
-            sys.exit(1)
+        if not args.registry_modules\
+            and not args.modules_in_workspaces:
+                log.error(\
+                    "Must provide a migration component argument(s). See `Usage` section of README.")
+                sys.exit(1)
     
     main()
     
