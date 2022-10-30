@@ -61,7 +61,7 @@ def migrate_all_states(src_client, dst_client, workspaces):
             logger.error(e)
             continue
 
-        src_state_versions = src_client.state_versions.list(page_size=PAGE_SIZE).json()['data']
+        src_state_versions = src_client.state_versions.list_all()['data']
         logger.info(f"Total source State Versions found for `{ws_name}`: {len(src_state_versions)}")
         if len(src_state_versions) == 0:
             logger.info(f"Skipping `{ws_name}` as no states were found to migrate.")
@@ -75,7 +75,7 @@ def migrate_all_states(src_client, dst_client, workspaces):
                     logger.warning(f"Detected destination Workspace `{ws_name}` already locked. Skipping out of precaution.")
                     continue
 
-        dst_state_versions = dst_client.state_versions.list().json()['data']
+        dst_state_versions = dst_client.state_versions.list_all()['data']
         dst_sv_serials = [dst_sv['attributes']['serial'] for dst_sv in dst_state_versions]
 
         for src_sv in reversed(src_state_versions):
@@ -93,7 +93,8 @@ def migrate_all_states(src_client, dst_client, workspaces):
             src_state_lineage = src_state_json['lineage']
 
             if dst_sv_serials and src_state_serial <= dst_sv_serials[0]:
-                logger.info(f"Skipping State Version `{src_state_serial}` in `{ws_name}` as it already exists or is older than the current.")
+                logger.info(\
+                    f"Skipping State Version `{src_state_serial}` in `{ws_name}` as it already exists or is older than the current.")
                 continue
 
             src_state_hash = hashlib.md5()
@@ -155,7 +156,7 @@ def migrate_current_state(src_client, dst_client, workspaces):
 
         src_sv_serial = src_sv['data']['attributes']['serial']
 
-        dst_sv_list = dst_client.state_versions.list().json()['data']
+        dst_sv_list = dst_client.state_versions.list_all()['data']
         dst_sv_serials = [dst_sv['attributes']['serial'] for dst_sv in dst_sv_list]
         
         if dst_sv_serials and src_sv_serial <= dst_sv_serials[0]:
@@ -215,7 +216,7 @@ def _get_workspaces(client, workspaces):
                 continue
     elif workspaces == 'all':
         logger.info(f"Gathering all Workspaces in `{client.org}` Org.")
-        ws_objects = client.workspaces.list(page_size=PAGE_SIZE).json()['data']
+        ws_objects = client.workspaces.list_all()['data']
     else:
         logger.error("A Workspaces argument was not specified.")
 
@@ -273,11 +274,11 @@ def main():
 
     # instantiate API clients
     logger.info("Instantiating API client for source TFE.")
-    src_client = pytfc.Client(hostname=SRC_TFE_HOSTNAME, token=SRC_TFE_TOKEN, org=SRC_TFE_ORG)
+    src_client = pytfc.Client(hostname=SRC_TFE_HOSTNAME, token=SRC_TFE_TOKEN, org=SRC_TFE_ORG, log_level="DEBUG")
     logger.info("Instantiating API client for destination TFC.")
     dst_client = pytfc.Client(hostname=DST_TFC_HOSTNAME, token=DST_TFC_TOKEN, org=DST_TFC_ORG)
 
-    # route to methods to do migration work
+    # route to functions to do migration work
     if args.migrate_current_state:
         migrate_current_state(src_client, dst_client, workspaces)
     elif args.migrate_all_states:
