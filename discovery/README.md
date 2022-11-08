@@ -4,28 +4,40 @@ that will assist in migration planning and execution.
 
 ## Setup
 ```shell
-pip3 install pytfc, pandas, tabulate
+pip3 install pytfc, tabulate
 
 export SRC_TFE_HOSTNAME='<my-TFE-hostname>'
 export SRC_TFE_TOKEN='<my-TFE-token>'
 ```
 
 ## Usage
-- A list of one or more Organizations via the `--orgs` argument is required
-- At least one additional flag is required to tell the script which TFE
-  components to generate a report on (see subsections below)
-- For a full report, pass the `--all` flag instead of individual components:
-  
-  ```
-  > tfcmig_discovery.py --orgs org1 org2 org3 --all
-  ```
+Specify a flag for at least one report to generate, as well as one or
+more Organizations to query via the `--orgs` argument. For example:
 
-### Registry Modules in Org
-```
-> tfcmig_discovery.py --orgs org1 org2 org3 --registry-modules
+```shell
+> tfcmig_discovery.py --registry-modules --orgs my-org1 my-org2 my-org3
 ```
 
-### Modules Used In Workspaces
+You can also pass the `--all` flag to run all of the available reports:
+
+```shell
+> tfcmig_discovery.py --all --orgs my-org1 my-org2 my-org3
 ```
-> tfcmig_discovery.py --orgs org1 org1 org3 --mods-in-ws
+
+## Available Reports
+Below are the reports that can be generated either alone or in tandem with others.
+
+### Registry Modules in Organization(s)
+```
+> tfcmig_discovery.py --registry-modules --orgs my-org1 my-org2 my-org3
+```
+
+### Module Sources in Workspaces
+```
+> tfcmig_discovery.py --module-sources-in-workspaces --orgs my-org1 my-org2 my-org3
+```
+
+### Module Calls in Workspaces
+```
+> tfcmig_discovery.py --module-calls-in-workspaces --orgs my-org1 my-org2 my-org3
 ```
