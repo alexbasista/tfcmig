@@ -15,29 +15,29 @@ Specify a flag for at least one report to generate, as well as one or
 more Organizations to query via the `--orgs` argument. For example:
 
 ```shell
-> tfcmig_discovery.py --registry-modules --orgs my-org1 my-org2 my-org3
+> tfcmig_discovery.py --registry-modules --orgs myorg1 myorg2 myorg3
 ```
 
 You can also pass the `--all` flag to run all of the available reports:
 
 ```shell
-> tfcmig_discovery.py --all --orgs my-org1 my-org2 my-org3
+> tfcmig_discovery.py --all --orgs myorg1 myorg2 myorg3
 ```
 
 ## Available Reports
 Below are the reports that can be generated either alone or in tandem with others.
 
 ### Registry Modules in Organization(s)
-```
-> tfcmig_discovery.py --registry-modules --orgs my-org1 my-org2 my-org3
+```shell
+> tfcmig_discovery.py --registry-modules --orgs myorg1 myorg2 myorg3
 ```
 
 ### Module Sources in Workspaces
-```
-> tfcmig_discovery.py --module-sources-in-workspaces --orgs my-org1 my-org2 my-org3
+```shell
+> tfcmig_discovery.py --module-sources-in-workspaces --orgs myorg1 myorg2 myorg3
 ```
 
 ### Module Calls in Workspaces
-```
-> tfcmig_discovery.py --module-calls-in-workspaces --orgs my-org1 my-org2 my-org3
+```shell
+> tfcmig_discovery.py --module-calls-in-workspaces --orgs myorg1 myorg2 myorg3
 ```
