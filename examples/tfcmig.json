@@ -1,0 +1,14 @@
+{
+  "agent_pool_ids": [
+      {"apool-1111111111111111": "apool-aaaaaaaaaaaaaaaa"},
+      {"apool-2222222222222222": "apool-bbbbbbbbbbbbbbbb"}
+  ],
+  "vcs_oauth_token_ids": [
+      {"ot-1111111111111111": "ot-aaaaaaaaaaaaaaaa"},
+      {"ot-2222222222222222": "ot-bbbbbbbbbbbbbbbb"}
+  ],
+  "ssh_key_ids": [
+    {"sshkey-1111111111111111": "sshkey-aaaaaaaaaaaaaaaa"},
+    {"sshkey-2222222222222222": "sshkey-bbbbbbbbbbbbbbbb"}
+  ]
+}

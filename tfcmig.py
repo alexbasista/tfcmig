@@ -39,6 +39,7 @@ def migrate_workspaces(src_client, dst_client, workspaces, config=None):
         ['data'][0]['attributes']['version']
     
     for src_ws in src_workspaces:
+        src_ws_id = src_ws['id']
         src_ws_name = src_ws['attributes']['name']
         logger.info(f"({src_workspaces.index(src_ws) + 1}/{total_ws})"
                     f" Migrating Workspace `{src_ws_name}`.")
@@ -55,13 +56,13 @@ def migrate_workspaces(src_client, dst_client, workspaces, config=None):
             dst_vcs_tags_regex = None
         else:
             try:
-                config['vcs_oauth_tokens']
+                config['vcs_oauth_token_ids']
             except KeyError:
                 logger.error("Detected VCS repo on src Workspace but no config mapping was provided.")
                 logger.error(f"Skipping `{src_ws_name}`.")
                 break
             dst_vcs_oauth_token_id = None
-            for i in config['vcs_oauth_tokens']:
+            for i in config['vcs_oauth_token_ids']:
                 if dst_vcs_oauth_token_id is not None:
                     break
                 for k, v in i.items():
@@ -87,12 +88,12 @@ def migrate_workspaces(src_client, dst_client, workspaces, config=None):
             dst_agent_pool_id = None
         else:
             try:
-                config['agents']
+                config['agent_pool_ids']
             except KeyError:
                 logger.error("Detected Agent Pool on src Workspace but no config mapping was provided.")
                 logger.error(f"Skipping `{src_ws_name}`.")
                 break
-            for i in config['agents']:
+            for i in config['agent_pool_ids']:
                 if dst_agent_pool_id is not None:
                     break
                 for k, v in i.items():
@@ -106,10 +107,11 @@ def migrate_workspaces(src_client, dst_client, workspaces, config=None):
         dst_terraform_version = src_ws['attributes']['terraform-version']
         if dst_terraform_version == 'latest':
             logger.debug("Found src Workspace Terraform version was set to `latest`.")
-            logger.debug(f"Setting to latest available version from src TFE `{src_latest_tf_version}` in dst.")
+            logger.debug("Setting to latest available version from src TFE"
+                         f" `{src_latest_tf_version}` in dst.")
             dst_terraform_version = src_latest_tf_version
 
-        # --- regular attributes --- #
+        # --- handle regular attributes --- #
         dst_allow_destroy_plan = src_ws['attributes']['allow-destroy-plan']
         dst_auto_apply = src_ws['attributes']['auto-apply']
         dst_description = src_ws['attributes']['description']
@@ -117,6 +119,7 @@ def migrate_workspaces(src_client, dst_client, workspaces, config=None):
         dst_file_triggers_enabled = src_ws['attributes']['file-triggers-enabled']
         dst_global_remote_state = src_ws['attributes']['global-remote-state']
         dst_queue_all_runs = False # hard-coded for now
+
         try:
             dst_source_name = src_ws['attributes']['source-name']
         except KeyError:
@@ -136,31 +139,132 @@ def migrate_workspaces(src_client, dst_client, workspaces, config=None):
         except KeyError:
             dst_assessments_enabled = False
 
-        # --- create Workspace --- #
-        dst_client.workspaces.create(
-            name = dst_name,
-            agent_pool_id = dst_agent_pool_id,
-            allow_destroy_plan = dst_allow_destroy_plan,
-            auto_apply = dst_auto_apply,
-            description = dst_description,
-            execution_mode = dst_execution_mode,
-            file_triggers_enabled = dst_file_triggers_enabled,
-            global_remote_state = dst_global_remote_state,
-            queue_all_runs = dst_queue_all_runs, 
-            source_name = dst_source_name, # beta
-            source_url = dst_source_url, # beta
-            speculative_enabled = dst_speculative_enabled,
-            terraform_version = dst_terraform_version,
-            trigger_prefixes = dst_trigger_prefixes,
-            trigger_patterns = dst_trigger_patterns,
-            identifier = dst_vcs_identifier, # vcs
-            oauth_token_id = dst_vcs_oauth_token_id, # vcs
-            branch = dst_vcs_branch, # vcs
-            ingress_submodules = dst_vcs_ingress_submodules, # vcs
-            tags_regex = dst_vcs_tags_regex, # vcs
-            working_directory = dst_working_directory,
-            assessments_enabled = dst_assessments_enabled
-        )
+        # --- check if dst Workspace exists --- #
+        try:
+            dst_ws = dst_client.workspaces.show(name=dst_name)
+            dst_ws_exists = True
+            logger.info(f"Detected dst Workspace `{dst_name}` already exists.")
+        except HTTPError as e:
+            if e.response.status_code == 404:
+                dst_ws_exists = False
+                logger.info(f"Detected dst Workspace `{dst_name}` does not yet exist.")
+            else:
+                logger.error("An unexpected error has occured.")
+                logger.error(e)
+
+        # --- create/update dst Workspace --- #
+        if dst_ws_exists == False:
+            dst_ws = dst_client.workspaces.create(
+                name = dst_name,
+                agent_pool_id = dst_agent_pool_id,
+                allow_destroy_plan = dst_allow_destroy_plan,
+                auto_apply = dst_auto_apply,
+                description = dst_description,
+                execution_mode = dst_execution_mode,
+                file_triggers_enabled = dst_file_triggers_enabled,
+                global_remote_state = dst_global_remote_state,
+                queue_all_runs = dst_queue_all_runs, 
+                source_name = dst_source_name, # beta
+                source_url = dst_source_url, # beta
+                speculative_enabled = dst_speculative_enabled,
+                terraform_version = dst_terraform_version,
+                trigger_prefixes = dst_trigger_prefixes,
+                trigger_patterns = dst_trigger_patterns,
+                identifier = dst_vcs_identifier, # vcs
+                oauth_token_id = dst_vcs_oauth_token_id, # vcs
+                branch = dst_vcs_branch, # vcs
+                ingress_submodules = dst_vcs_ingress_submodules, # vcs
+                tags_regex = dst_vcs_tags_regex, # vcs
+                working_directory = dst_working_directory,
+                assessments_enabled = dst_assessments_enabled
+            )
+        elif dst_ws_exists == True:
+            dst_client.workspaces.update(
+                name = dst_name,
+                agent_pool_id = dst_agent_pool_id,
+                allow_destroy_plan = dst_allow_destroy_plan,
+                auto_apply = dst_auto_apply,
+                description = dst_description,
+                execution_mode = dst_execution_mode,
+                file_triggers_enabled = dst_file_triggers_enabled,
+                global_remote_state = dst_global_remote_state,
+                queue_all_runs = dst_queue_all_runs, 
+                source_name = dst_source_name, # beta
+                source_url = dst_source_url, # beta
+                speculative_enabled = dst_speculative_enabled,
+                terraform_version = dst_terraform_version,
+                trigger_prefixes = dst_trigger_prefixes,
+                trigger_patterns = dst_trigger_patterns,
+                identifier = dst_vcs_identifier, # vcs
+                oauth_token_id = dst_vcs_oauth_token_id, # vcs
+                branch = dst_vcs_branch, # vcs
+                ingress_submodules = dst_vcs_ingress_submodules, # vcs
+                tags_regex = dst_vcs_tags_regex, # vcs
+                working_directory = dst_working_directory,
+                assessments_enabled = dst_assessments_enabled
+            )
+
+        dst_ws_id = dst_ws.json()['data']['id']
+        
+        # --- create Workspace Variables --- #
+        src_ws_vars = src_client.workspace_variables.list(ws_id=src_ws_id).json()['data']
+        dst_ws_vars = dst_client.workspace_variables.list(ws_id=dst_ws_id).json()['data']
+
+        logger.info(f"Copying Workspace Variables for `{src_ws_name}`.")
+        for src_var in src_ws_vars:
+            dst_var_key = src_var['attributes']['key']
+            dst_var_value = src_var['attributes']['value']
+            dst_var_description = src_var['attributes']['description']
+            dst_var_category = src_var['attributes']['category']
+            dst_var_hcl = src_var['attributes']['hcl']
+            dst_var_sensitive = src_var['attributes']['sensitive']
+        
+            if any(dst_var_key in i['attributes']['key'] for i in dst_ws_vars):
+                logger.info(f"Detected variable `{dst_var_key}` already exists in dst Workspace. Skipping.")
+                continue
+
+            logger.info(f"Copying variable `{dst_var_key}`.")
+            if dst_var_value is None:
+                logger.warning(f"Detected variable `{dst_var_key}` has a sensitive or null value.")
+            
+            dst_client.workspace_variables.create(
+                key = dst_var_key,
+                value = dst_var_value,
+                description = dst_var_description,
+                category = dst_var_category,
+                hcl = dst_var_hcl,
+                sensitive = dst_var_sensitive,
+                ws_id = dst_ws_id
+            )
+        
+        # --- SSH Key assignment --- #
+        try:
+            src_ws_ssh_key_id = src_ws['relationships']['ssh-key']['data']['id']
+        except KeyError:
+            logger.warning("NO SSH KEY")
+            src_ws_ssh_key_id = None
+        print(src_ws_ssh_key_id)
+        if src_ws_ssh_key_id is not None:
+            logger.info(f"Copying SSH Key for `{src_ws_name}`.")
+            try:
+                config['ssh_key_ids']
+            except KeyError:
+                logger.error("Detected SSH Key assigned to src Workspace but no config mapping was provided. Skipping.")
+                break
+            dst_ws_ssh_key_id = None
+            for i in config['ssh_key_ids']:
+                if dst_ws_ssh_key_id is not None:
+                    break
+                for k, v in i.items():
+                    if src_ws_ssh_key_id == k:
+                        dst_ws_ssh_key_id = v
+                        break
+                    else:
+                        dst_ws_ssh_key_id = None
+        
+            logger.info(f"Assigning `{dst_ws_ssh_key_id}` to `{src_ws_name}`.")
+            dst_client.workspaces.assign_ssh_key(ssh_key_id=dst_ws_ssh_key_id, name=src_ws_name)
+            
 
 ###########################################################################################################
 
@@ -339,22 +443,23 @@ def _get_workspaces(client, workspaces):
     ws_objects = []
 
     if workspaces != 'all':
-        logger.info(f"Gathering specified Workspaces in `{client.org}` Org.")
+        logger.info(f"Gathering specified src Workspaces in `{client.org}` Org.")
         if not isinstance(workspaces, list):
-            logger.error("Must provide a list of Workspaces when using `--workspaces` arg.")
+            logger.error("Must provide a list of src Workspaces when using `--workspaces` arg.")
         for ws in workspaces:
             try:
                 ws_obj = client.workspaces.show(name=ws).json()['data']
                 ws_objects.append(ws_obj)
             except Exception as e:
-                logger.error(f"Error retrieving info for Workspace `{ws}`. Please verify name and existence.")
+                logger.error(f"Error finding src Workspace `{ws}`. Please verify name and existence.")
                 logger.error(e)
                 continue
     elif workspaces == 'all':
-        logger.info(f"Gathering all Workspaces in `{client.org}` Org.")
+        logger.info(f"Gathering all src Workspaces in `{client.org}` Org.")
         ws_objects = client.workspaces.list_all()['data']
     else:
-        logger.error("A Workspaces argument was not specified.")
+        logger.error("A Workspaces scope argument was not specified. Either"
+                     " `--workspaces <list>` or `--all-workspaces` is required.")
 
     return ws_objects
 
@@ -437,7 +542,8 @@ def main():
     elif args.migrate_workspaces:
         migrate_workspaces(src_client, dst_client, workspaces, config)
     else:
-        logger.error("Either `--migrate-current-state` or `--migrate-all-states` argument is required.")
+        logger.error("One action argument is required: "
+                     " `--migrate-current-state`, `--migrate-all-states`, `--migrate-workspaces`.")
         sys.exit(2)
 
     logger.info("Finished!")
