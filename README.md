@@ -15,30 +15,47 @@ export DST_TFC_ORG='<my-TFC-org>'
 ```
 
 ## Usage
+There are two arguments categories required to run the script:
+1) **Action** - What component do you want to migrate?
+2) **Scope** - Which Workspaces or _all_ Workspaces in an Org?
 
-### Migrate All States
+**Actions arguments**
+- `--migrate-workspaces` - migrate Workspaces and their config (without the State files)
+- `--migrate-all-states` - migrate all State files
+- `--migrate-current-state` - migrate the current (latest) State file only
 
-#### All Workspaces
+**Scope arguments**
+- `--workspaces` - list of Workspace names separate by spaces (not commas)
+- `--all-workspaces` - all Workspaces in the Organization
+
+### Config File
+Some components of Workspaces require a mapping of names or IDs from source
+to destination in order to be properly migrated, such as:
+- Agent Pool ID
+- VCS OAuth Token ID
+- SSH Key ID
+
+Use the `--config-file` argument with a path to the JSON file.
+See the [example template](./examples/tfcmig.json) for proper formatting and syntax.
+
+## Examples
+
+### Migrate Workspaces
 ```
-> tfcmig.py --migrate-all-states --all-workspaces
+> tfcmig.py --migrate-workspaces --workspaces ws1 ws2 ws3
 ```
 
-#### Select Workspaces
+### Migrate All State Files
 ```
 > tfcmig.py --migrate-all-states --workspaces ws1 ws2 ws3
 ```
 
-### Migrate Current State
-
-#### All Workspaces
+### Migrate Current State File
 ```
-> tfcmig.py --migrate-current-state --all-workspaces
+> tfcmig.py --migrate-current-states --workspaces ws1 ws2 ws3
 ```
 
-#### Select Workspaces
+### Using a Config File
 ```
-> tfcmig.py --migrate-current-state --workspaces ws1 ws2 ws3
+> tfcmig.py --migrate-workspaces --workspaces ws1 ws2 ws3 --config-file 'tfcmig.json'
 ```
-
-## Troubleshooting
-- If you have more than 100 Workspaces in your Org and you are using the `--all-workspaces` arg, modify the value of `PAGE_SIZE` contstant at the top of the script to the total number of Workspaces in your Org.
