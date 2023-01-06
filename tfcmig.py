@@ -90,8 +90,8 @@ def migrate_workspaces(src_client, dst_client, workspaces, config=None):
             try:
                 config['agent_pool_ids']
             except KeyError:
-                logger.error("Detected Agent Pool on src Workspace but no config mapping was provided.")
-                logger.error(f"Skipping `{src_ws_name}`.")
+                logger.error("Detected Agent Pool on src Workspace but no config"
+                            f" mapping was provided. Skipping `{src_ws_name}`.")
                 break
             for i in config['agent_pool_ids']:
                 if dst_agent_pool_id is not None:
@@ -236,20 +236,20 @@ def migrate_workspaces(src_client, dst_client, workspaces, config=None):
                 sensitive = dst_var_sensitive,
                 ws_id = dst_ws_id
             )
-        
+
         # --- SSH Key assignment --- #
         try:
             src_ws_ssh_key_id = src_ws['relationships']['ssh-key']['data']['id']
         except KeyError:
-            logger.warning("NO SSH KEY")
             src_ws_ssh_key_id = None
-        print(src_ws_ssh_key_id)
+
         if src_ws_ssh_key_id is not None:
-            logger.info(f"Copying SSH Key for `{src_ws_name}`.")
+            logger.info(f"Assigning equivalent SSH Key for `{src_ws_name}`.")
             try:
                 config['ssh_key_ids']
             except KeyError:
-                logger.error("Detected SSH Key assigned to src Workspace but no config mapping was provided. Skipping.")
+                logger.error("Detected SSH Key assigned to src Workspace but" 
+                             " no config mapping was provided. Skipping.")
                 break
             dst_ws_ssh_key_id = None
             for i in config['ssh_key_ids']:
@@ -263,10 +263,9 @@ def migrate_workspaces(src_client, dst_client, workspaces, config=None):
                         dst_ws_ssh_key_id = None
         
             logger.info(f"Assigning `{dst_ws_ssh_key_id}` to `{src_ws_name}`.")
-            dst_client.workspaces.assign_ssh_key(ssh_key_id=dst_ws_ssh_key_id, name=src_ws_name)
-            
+            dst_client.workspaces.assign_ssh_key(ssh_key_id=dst_ws_ssh_key_id,
+                                                 name=src_ws_name)
 
-###########################################################################################################
 
 def migrate_all_states(src_client, dst_client, workspaces):
     logger = logging.getLogger(LOGGER)
@@ -522,7 +521,7 @@ def main():
     logger.info("Instantiating API client for source TFE.")
     src_client = pytfc.Client(hostname=SRC_TFE_HOSTNAME, token=SRC_TFE_TOKEN, org=SRC_TFE_ORG)
     logger.info("Instantiating API client for destination TFC.")
-    dst_client = pytfc.Client(hostname=DST_TFC_HOSTNAME, token=DST_TFC_TOKEN, org=DST_TFC_ORG, log_level='DEBUG')
+    dst_client = pytfc.Client(hostname=DST_TFC_HOSTNAME, token=DST_TFC_TOKEN, org=DST_TFC_ORG)
 
     # import config file
     config = None
