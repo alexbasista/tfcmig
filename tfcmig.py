@@ -138,7 +138,12 @@ def migrate_workspaces(src_client, dst_client, workspaces, config=None):
         
         dst_speculative_enabled = src_ws['attributes']['speculative-enabled']
         dst_trigger_prefixes = src_ws['attributes']['trigger-prefixes']
-        dst_trigger_patterns = src_ws['attributes']['trigger-patterns']
+        
+        try:
+            dst_trigger_patterns = src_ws['attributes']['trigger-patterns']
+        except KeyError:
+            dst_trigger_patterns = None
+        
         dst_working_directory = src_ws['attributes']['working-directory']
 
         try:
