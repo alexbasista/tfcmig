@@ -72,10 +72,17 @@ def migrate_workspaces(src_client, dst_client, workspaces, config=None):
                     else:
                         dst_vcs_oauth_token_id = None
 
-            dst_vcs_identifier = src_ws['attributes']['vcs-repo']['identifier']
-            dst_vcs_branch = src_ws['attributes']['vcs-repo']['branch']
-            dst_vcs_ingress_submodules = src_ws['attributes']['vcs-repo']['ingress-submodules']
-            dst_vcs_tags_regex = src_ws['attributes']['vcs-repo']['tags-regex']
+            if dst_vcs_oauth_token_id == "None":
+                dst_vcs_identifier = None
+                dst_vcs_oauth_token_id = None
+                dst_vcs_branch = None
+                dst_vcs_ingress_submodules = None
+                dst_vcs_tags_regex = None
+            else:
+                dst_vcs_identifier = src_ws['attributes']['vcs-repo']['identifier']
+                dst_vcs_branch = src_ws['attributes']['vcs-repo']['branch']
+                dst_vcs_ingress_submodules = src_ws['attributes']['vcs-repo']['ingress-submodules']
+                dst_vcs_tags_regex = src_ws['attributes']['vcs-repo']['tags-regex']
 
         # --- handle Agent Pool ID --- #
         dst_agent_pool_id = None
@@ -205,8 +212,9 @@ def migrate_workspaces(src_client, dst_client, workspaces, config=None):
             )
 
         dst_ws_id = dst_ws.json()['data']['id']
+        dst_ws_name = dst_name
         
-        # --- create Workspace Variables --- #
+        # --- handle Workspace Variables --- #
         src_ws_vars = src_client.workspace_variables.list(ws_id=src_ws_id).json()['data']
         dst_ws_vars = dst_client.workspace_variables.list(ws_id=dst_ws_id).json()['data']
 
@@ -237,14 +245,14 @@ def migrate_workspaces(src_client, dst_client, workspaces, config=None):
                 ws_id = dst_ws_id
             )
 
-        # --- SSH Key assignment --- #
+        # --- handle SSH Key assignment --- #
         try:
             src_ws_ssh_key_id = src_ws['relationships']['ssh-key']['data']['id']
         except KeyError:
             src_ws_ssh_key_id = None
 
         if src_ws_ssh_key_id is not None:
-            logger.info(f"Assigning equivalent SSH Key for `{src_ws_name}`.")
+            logger.info(f"Assigning equivalent SSH Key for `{dst_ws_name}`.")
             try:
                 config['ssh_key_ids']
             except KeyError:
@@ -258,13 +266,61 @@ def migrate_workspaces(src_client, dst_client, workspaces, config=None):
                 for k, v in i.items():
                     if src_ws_ssh_key_id == k:
                         dst_ws_ssh_key_id = v
+                        logger.info(f"Assigning `{dst_ws_ssh_key_id}` to `{dst_ws_name}`.")
+                        dst_client.workspaces.assign_ssh_key(ssh_key_id=dst_ws_ssh_key_id,
+                                                             name=dst_ws_name)
                         break
-                    else:
-                        dst_ws_ssh_key_id = None
+                    # else:
+                    #     dst_ws_ssh_key_id = None
         
-            logger.info(f"Assigning `{dst_ws_ssh_key_id}` to `{src_ws_name}`.")
-            dst_client.workspaces.assign_ssh_key(ssh_key_id=dst_ws_ssh_key_id,
-                                                 name=src_ws_name)
+        # --- handle Notifications --- #
+        # src_ws_nc_list = src_client.notification_configurations.list(ws_id=src_ws_id).json()['data']
+        # dst_ws_nc_list = dst_client.notification_configurations.list(ws_id=dst_ws_id).json()['data']
+        
+        # if src_ws_nc_list != []:
+        #     for src_nc in src_ws_nc_list:
+        #         dst_nc_name = src_nc['attributes']['name']
+        #         if any(dst_nc_name in i['attributes']['name'] for i in dst_ws_nc_list):
+        #             logger.warning(f"Skipping {dst_nc_name} already exists.")
+        #         else:
+        #             dst_nc_destination_type = src_nc['attributes']['destination-type']
+        #             dst_nc_enabled = src_nc['attributes']['enabled']
+        #             dst_nc_triggers = src_nc['attributes']['triggers']
+                    
+        #             try:
+        #                 dst_nc_token = src_nc['attributes']['token']
+        #             except KeyError:
+        #                 dst_nc_token = None
+
+        #             try:
+        #                 dst_nc_url = src_nc['attributes']['url']
+        #             except KeyError:
+        #                 dst_nc_url = None
+
+        #             try:
+        #                 dst_nc_users = src_nc['relationships']['users']['data']
+        #             except KeyError:
+        #                 dst_nc_users = None
+
+        #             dst_nc_users_list = []
+        #             if dst_nc_users != [] or dst_nc_users != None:
+        #                 for u in dst_nc_users:
+        #                     dst_nc_users_list.append(u['id'])
+        #             else:
+        #                 dst_nc_users_list = None
+
+        #             dst_client.notification_configurations.create(
+        #                 name = dst_nc_name,
+        #                 destination_type = dst_nc_destination_type,
+        #                 enabled = dst_nc_enabled,
+        #                 token = dst_nc_token,
+        #                 triggers = dst_nc_triggers,
+        #                 url = dst_nc_url,
+        #                 users = dst_nc_users_list, # config mapping of User IDs required
+        #                 ws_id = dst_ws_id
+        #             )
+
+        # --- Team Access --- #
 
 
 def migrate_all_states(src_client, dst_client, workspaces):
@@ -521,7 +577,7 @@ def main():
     logger.info("Instantiating API client for source TFE.")
     src_client = pytfc.Client(hostname=SRC_TFE_HOSTNAME, token=SRC_TFE_TOKEN, org=SRC_TFE_ORG)
     logger.info("Instantiating API client for destination TFC.")
-    dst_client = pytfc.Client(hostname=DST_TFC_HOSTNAME, token=DST_TFC_TOKEN, org=DST_TFC_ORG)
+    dst_client = pytfc.Client(hostname=DST_TFC_HOSTNAME, token=DST_TFC_TOKEN, org=DST_TFC_ORG, log_level='DEBUG')
 
     # import config file
     config = None
