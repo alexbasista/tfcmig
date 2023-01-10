@@ -55,60 +55,93 @@ def migrate_workspaces(src_client, dst_client, workspaces, config=None):
             dst_vcs_ingress_submodules = None
             dst_vcs_tags_regex = None
         else:
-            try:
-                config['vcs_oauth_token_ids']
-            except KeyError:
-                logger.error("Detected VCS repo on src Workspace but no config mapping was provided.")
-                logger.error(f"Skipping `{src_ws_name}`.")
-                break
-            dst_vcs_oauth_token_id = None
-            for i in config['vcs_oauth_token_ids']:
-                if dst_vcs_oauth_token_id is not None:
+            if config is not None:
+                try:
+                    config['vcs_oauth_token_ids']
+                except KeyError:
+                    logger.error("Detected VCS repo on src Workspace but no config."
+                                 f" mapping was provided. Skipping `{src_ws_name}`.")
                     break
-                for k, v in i.items():
-                    if src_ws['attributes']['vcs-repo']['oauth-token-id'] == k:
-                        dst_vcs_oauth_token_id = v
-                        break
-                    else:
-                        dst_vcs_oauth_token_id = None
-
-            if dst_vcs_oauth_token_id == "None":
-                dst_vcs_identifier = None
                 dst_vcs_oauth_token_id = None
-                dst_vcs_branch = None
-                dst_vcs_ingress_submodules = None
-                dst_vcs_tags_regex = None
-            else:
-                dst_vcs_identifier = src_ws['attributes']['vcs-repo']['identifier']
-                dst_vcs_branch = src_ws['attributes']['vcs-repo']['branch']
-                dst_vcs_ingress_submodules = src_ws['attributes']['vcs-repo']['ingress-submodules']
-                dst_vcs_tags_regex = src_ws['attributes']['vcs-repo']['tags-regex']
+                for i in config['vcs_oauth_token_ids']:
+                    if dst_vcs_oauth_token_id is not None:
+                        break
+                    for k, v in i.items():
+                        if src_ws['attributes']['vcs-repo']['oauth-token-id'] == k:
+                            dst_vcs_oauth_token_id = v
+                            break
+                        else:
+                            dst_vcs_oauth_token_id = None
 
-        # --- handle Agent Pool ID --- #
+                if dst_vcs_oauth_token_id == "None":
+                    dst_vcs_identifier = None
+                    dst_vcs_oauth_token_id = None
+                    dst_vcs_branch = None
+                    dst_vcs_ingress_submodules = None
+                    dst_vcs_tags_regex = None
+                else:
+                    dst_vcs_identifier = src_ws['attributes']['vcs-repo']['identifier']
+                    dst_vcs_branch = src_ws['attributes']['vcs-repo']['branch']
+                    dst_vcs_ingress_submodules = src_ws['attributes']['vcs-repo']['ingress-submodules']
+                    dst_vcs_tags_regex = src_ws['attributes']['vcs-repo']['tags-regex']
+            else:
+                logger.error("Detected VCS repo on src Workspace but no config"
+                             f" mapping was provided. Skipping `{src_ws_name}`.")
+                break
+
+        # --- handle Agent Pool assignment --- #
         dst_agent_pool_id = None
+        dst_execution_mode_agent_override = False
         try:
             src_agent_pool_id = src_ws['relationships']['agent-pool']['data']['id']
         except TypeError:
             src_agent_pool_id = None
 
         if src_agent_pool_id is None:
-            dst_agent_pool_id = None
-        else:
-            try:
-                config['agent_pool_ids']
-            except KeyError:
-                logger.error("Detected Agent Pool on src Workspace but no config"
-                            f" mapping was provided. Skipping `{src_ws_name}`.")
-                break
-            for i in config['agent_pool_ids']:
-                if dst_agent_pool_id is not None:
-                    break
-                for k, v in i.items():
-                    if src_ws['relationships']['agent-pool']['data']['id'] == k:
-                        dst_agent_pool_id = v
+            if config is not None:
+                try:
+                    config['agent_pool_ids']
+                except KeyError:
+                    dst_agent_pool_id = None
+                    pass
+                for i in config['agent_pool_ids']:
+                    if i.get('None') is not None:
+                        dst_agent_pool_id = i.get('None')
+                        dst_execution_mode_agent_override = True
+                        logger.info("Found 'None' in config mapping for src Workspace 'agent_pool_ids'.")
+                        logger.info(f"Will configure dst Workspace with `{dst_agent_pool_id}`.")
                         break
                     else:
                         dst_agent_pool_id = None
+                        dst_execution_mode_agent_override = False
+            else:
+                pass
+        else:
+            if config is not None:
+                try:
+                    config['agent_pool_ids']
+                except KeyError:
+                    logger.error("Detected Agent Pool on src Workspace but no config"
+                                f" mapping was provided. Skipping `{src_ws_name}`.")
+                    break
+                for i in config['agent_pool_ids']:
+                    if dst_agent_pool_id is not None:
+                        break
+                    for k, v in i.items():
+                        if src_ws['relationships']['agent-pool']['data']['id'] == k:
+                            dst_agent_pool_id = v
+                            break
+                        else:
+                            dst_agent_pool_id = None
+            else:
+                logger.error("Detected Agent Pool on src Workspace but no config"
+                            f" mapping was provided. Skipping `{src_ws_name}`.")
+                break
+        
+        if dst_execution_mode_agent_override:
+            dst_execution_mode = 'agent'
+        else:
+            dst_execution_mode = src_ws['attributes']['execution-mode']
         
         # --- handle Terraform Version --- #
         dst_terraform_version = src_ws['attributes']['terraform-version']
@@ -122,7 +155,7 @@ def migrate_workspaces(src_client, dst_client, workspaces, config=None):
         dst_allow_destroy_plan = src_ws['attributes']['allow-destroy-plan']
         dst_auto_apply = src_ws['attributes']['auto-apply']
         dst_description = src_ws['attributes']['description']
-        dst_execution_mode = src_ws['attributes']['execution-mode']
+        
         dst_file_triggers_enabled = src_ws['attributes']['file-triggers-enabled']
         dst_global_remote_state = src_ws['attributes']['global-remote-state']
         dst_queue_all_runs = False # hard-coded for now
@@ -166,6 +199,7 @@ def migrate_workspaces(src_client, dst_client, workspaces, config=None):
 
         # --- create/update dst Workspace --- #
         if dst_ws_exists == False:
+            logger.info(f"Creating `{dst_name}`.")
             dst_ws = dst_client.workspaces.create(
                 name = dst_name,
                 agent_pool_id = dst_agent_pool_id,
@@ -191,6 +225,7 @@ def migrate_workspaces(src_client, dst_client, workspaces, config=None):
                 assessments_enabled = dst_assessments_enabled
             )
         elif dst_ws_exists == True:
+            logger.info(f"Updating `{dst_ws_name}` if changes are detected.")
             dst_client.workspaces.update(
                 name = dst_name,
                 agent_pool_id = dst_agent_pool_id,
@@ -582,7 +617,7 @@ def main():
     logger.info("Instantiating API client for source TFE.")
     src_client = pytfc.Client(hostname=SRC_TFE_HOSTNAME, token=SRC_TFE_TOKEN, org=SRC_TFE_ORG)
     logger.info("Instantiating API client for destination TFC.")
-    dst_client = pytfc.Client(hostname=DST_TFC_HOSTNAME, token=DST_TFC_TOKEN, org=DST_TFC_ORG, log_level='DEBUG')
+    dst_client = pytfc.Client(hostname=DST_TFC_HOSTNAME, token=DST_TFC_TOKEN, org=DST_TFC_ORG, log_level='INFO')
 
     # import config file
     config = None
