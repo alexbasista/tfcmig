@@ -45,7 +45,7 @@ See the [example template](./examples/tfcmig.json) for proper formatting and syn
 > tfcmig.py --migrate-workspaces --workspaces ws1 ws2 ws3
 ```
 
-or with optional config file
+or with the optional config file:
 
 ```
 > tfcmig.py --migrate-workspaces --workspaces ws1 ws2 ws3 --config-file 'tfcmig.json'

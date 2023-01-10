@@ -225,7 +225,7 @@ def migrate_workspaces(src_client, dst_client, workspaces, config=None):
                 assessments_enabled = dst_assessments_enabled
             )
         elif dst_ws_exists == True:
-            logger.info(f"Updating `{dst_ws_name}` if changes are detected.")
+            logger.info(f"Updating `{dst_name}` if changes are detected.")
             dst_client.workspaces.update(
                 name = dst_name,
                 agent_pool_id = dst_agent_pool_id,
@@ -617,7 +617,7 @@ def main():
     logger.info("Instantiating API client for source TFE.")
     src_client = pytfc.Client(hostname=SRC_TFE_HOSTNAME, token=SRC_TFE_TOKEN, org=SRC_TFE_ORG)
     logger.info("Instantiating API client for destination TFC.")
-    dst_client = pytfc.Client(hostname=DST_TFC_HOSTNAME, token=DST_TFC_TOKEN, org=DST_TFC_ORG, log_level='INFO')
+    dst_client = pytfc.Client(hostname=DST_TFC_HOSTNAME, token=DST_TFC_TOKEN, org=DST_TFC_ORG, log_level='DEBUG')
 
     # import config file
     config = None
