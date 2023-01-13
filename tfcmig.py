@@ -35,8 +35,12 @@ def migrate_workspaces(src_client, dst_client, workspaces, config=None):
     total_ws = len(src_workspaces)
     logger.info(f"Total Workspaces gathered: {total_ws}")
 
-    src_latest_tf_version = src_client.admin_terraform_versions.list().json()\
-        ['data'][0]['attributes']['version']
+    try:
+        src_latest_tf_version = src_client.admin_terraform_versions.list().json()\
+            ['data'][0]['attributes']['version']
+    except HTTPError as e:
+        src_latest_tf_version = None
+
     
     for src_ws in src_workspaces:
         src_ws_id = src_ws['id']
@@ -146,10 +150,14 @@ def migrate_workspaces(src_client, dst_client, workspaces, config=None):
         # --- handle Terraform Version --- #
         dst_terraform_version = src_ws['attributes']['terraform-version']
         if dst_terraform_version == 'latest':
-            logger.debug("Found src Workspace Terraform version was set to `latest`.")
-            logger.debug("Setting to latest available version from src TFE"
-                         f" `{src_latest_tf_version}` in dst.")
-            dst_terraform_version = src_latest_tf_version
+            logger.debug("Detected src Workspace Terraform Version is set to `latest`.")
+            if src_latest_tf_version is not None:
+                logger.debug("Setting to latest available version from src TFE"
+                            f" `{src_latest_tf_version}` in dst.")
+                dst_terraform_version = src_latest_tf_version
+            else:
+                logger.warning("Unable to find latest Terraform Version in src" 
+                               " TFE. Setting dst Workspace to `latest` to match.")
 
         # --- handle regular attributes --- #
         dst_allow_destroy_plan = src_ws['attributes']['allow-destroy-plan']
@@ -361,6 +369,8 @@ def migrate_workspaces(src_client, dst_client, workspaces, config=None):
         #             )
 
         # --- Team Access --- #
+
+        # --- Variable Sets --- #
 
 
 def migrate_all_states(src_client, dst_client, workspaces):
@@ -617,7 +627,7 @@ def main():
     logger.info("Instantiating API client for source TFE.")
     src_client = pytfc.Client(hostname=SRC_TFE_HOSTNAME, token=SRC_TFE_TOKEN, org=SRC_TFE_ORG)
     logger.info("Instantiating API client for destination TFC.")
-    dst_client = pytfc.Client(hostname=DST_TFC_HOSTNAME, token=DST_TFC_TOKEN, org=DST_TFC_ORG, log_level='DEBUG')
+    dst_client = pytfc.Client(hostname=DST_TFC_HOSTNAME, token=DST_TFC_TOKEN, org=DST_TFC_ORG, log_level=args.log_level)
 
     # import config file
     config = None
