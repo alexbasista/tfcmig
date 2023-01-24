@@ -322,51 +322,53 @@ def migrate_workspaces(src_client, dst_client, workspaces, config=None):
                     #     dst_ws_ssh_key_id = None
         
         # --- handle Notifications --- #
-        # src_ws_nc_list = src_client.notification_configurations.list(ws_id=src_ws_id).json()['data']
-        # dst_ws_nc_list = dst_client.notification_configurations.list(ws_id=dst_ws_id).json()['data']
+        src_ws_nc_list = src_client.notification_configurations.list(ws_id=src_ws_id).json()['data']
+        dst_ws_nc_list = dst_client.notification_configurations.list(ws_id=dst_ws_id).json()['data']
         
-        # if src_ws_nc_list != []:
-        #     for src_nc in src_ws_nc_list:
-        #         dst_nc_name = src_nc['attributes']['name']
-        #         if any(dst_nc_name in i['attributes']['name'] for i in dst_ws_nc_list):
-        #             logger.warning(f"Skipping {dst_nc_name} already exists.")
-        #         else:
-        #             dst_nc_destination_type = src_nc['attributes']['destination-type']
-        #             dst_nc_enabled = src_nc['attributes']['enabled']
-        #             dst_nc_triggers = src_nc['attributes']['triggers']
+        if src_ws_nc_list != []:
+            for src_nc in src_ws_nc_list:
+                dst_nc_name = src_nc['attributes']['name']
+                if any(dst_nc_name in i['attributes']['name'] for i in dst_ws_nc_list):
+                    logger.warning(f"Skipping {dst_nc_name} already exists.")
+                else:
+                    dst_nc_destination_type = src_nc['attributes']['destination-type']
+                    dst_nc_enabled = src_nc['attributes']['enabled']
+                    dst_nc_triggers = src_nc['attributes']['triggers']
                     
-        #             try:
-        #                 dst_nc_token = src_nc['attributes']['token']
-        #             except KeyError:
-        #                 dst_nc_token = None
+                    try:
+                        dst_nc_token = src_nc['attributes']['token']
+                    except KeyError:
+                        dst_nc_token = None
 
-        #             try:
-        #                 dst_nc_url = src_nc['attributes']['url']
-        #             except KeyError:
-        #                 dst_nc_url = None
+                    try:
+                        dst_nc_url = src_nc['attributes']['url']
+                    except KeyError:
+                        dst_nc_url = None
 
-        #             try:
-        #                 dst_nc_users = src_nc['relationships']['users']['data']
-        #             except KeyError:
-        #                 dst_nc_users = None
+                    try:
+                        dst_nc_users = src_nc['relationships']['users']['data']
+                    except KeyError:
+                        dst_nc_users = None
 
-        #             dst_nc_users_list = []
-        #             if dst_nc_users != [] or dst_nc_users != None:
-        #                 for u in dst_nc_users:
-        #                     dst_nc_users_list.append(u['id'])
-        #             else:
-        #                 dst_nc_users_list = None
+                    dst_nc_users_list = []
+                    if dst_nc_users is None:
+                        dst_nc_users_list = None
+                    elif dst_nc_users != [] or dst_nc_users is not None:
+                        for u in dst_nc_users:
+                            dst_nc_users_list.append(u['id'])
+                    else:
+                        dst_nc_users_list = None
 
-        #             dst_client.notification_configurations.create(
-        #                 name = dst_nc_name,
-        #                 destination_type = dst_nc_destination_type,
-        #                 enabled = dst_nc_enabled,
-        #                 token = dst_nc_token,
-        #                 triggers = dst_nc_triggers,
-        #                 url = dst_nc_url,
-        #                 users = dst_nc_users_list, # config mapping of User IDs required
-        #                 ws_id = dst_ws_id
-        #             )
+                    dst_client.notification_configurations.create(
+                        name = dst_nc_name,
+                        destination_type = dst_nc_destination_type,
+                        enabled = dst_nc_enabled,
+                        token = dst_nc_token,
+                        triggers = dst_nc_triggers,
+                        url = dst_nc_url,
+                        users = dst_nc_users_list, # TODO: config mapping of User IDs required
+                        ws_id = dst_ws_id
+                    )
 
         # --- Team Access --- #
 
