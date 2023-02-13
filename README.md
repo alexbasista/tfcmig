@@ -14,6 +14,7 @@ export DST_TFC_TOKEN='<my-TFC-token>'
 export DST_TFC_ORG='<my-TFC-org>'
 ```
 
+
 ## Usage
 There are two arguments categories required to run the script:
 1) **Action** - What component do you want to migrate?
@@ -35,10 +36,10 @@ to destination in order to be properly migrated, such as:
 - Agent Pool ID
 - SSH Key ID
 
-Use the `--config-file` argument with a path to the JSON file.
+Use the `--config-file` argument with a path to the JSON file containing the mappings.
 See the [example template](./examples/tfcmig.json) for proper formatting and syntax.
 
-### Sequence
+### Order of Ops
 
 #### 1) Migrate Workspaces
 ```
@@ -56,3 +57,9 @@ or with the optional config file:
 > tfcmig.py --migrate-all-states --workspaces ws1 ws2 ws3
 ```
 
+
+## What's Not Supported
+- **Workspace Team Access** - _work in progress_
+- **Variable Sets** - _planned_
+- **Run Triggers** - _planned_
+- **Run Tasks** - _unplanned_
