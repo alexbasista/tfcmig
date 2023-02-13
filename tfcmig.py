@@ -300,7 +300,7 @@ def migrate_workspaces(src_client, dst_client, workspaces, config=None):
             src_ws_ssh_key_id = None
 
         if src_ws_ssh_key_id is not None:
-            logger.info(f"Assigning equivalent SSH Key for `{dst_ws_name}`.")
+            logger.info(f"Assigning mapped SSH Key for `{dst_ws_name}`.")
             try:
                 config['ssh_key_ids']
             except KeyError:
@@ -326,10 +326,13 @@ def migrate_workspaces(src_client, dst_client, workspaces, config=None):
         dst_ws_nc_list = dst_client.notification_configurations.list(ws_id=dst_ws_id).json()['data']
         
         if src_ws_nc_list != []:
+            logger.info(f"Copying Notification Configurations for `{src_ws_name}`.")
             for src_nc in src_ws_nc_list:
                 dst_nc_name = src_nc['attributes']['name']
                 if any(dst_nc_name in i['attributes']['name'] for i in dst_ws_nc_list):
-                    logger.warning(f"Skipping {dst_nc_name} already exists.")
+                    logger.warning(f"Skipping `{dst_nc_name}` notification - already exists.")
+                    continue
+                    # TODO: investigate notification_configuration.update() here
                 else:
                     dst_nc_destination_type = src_nc['attributes']['destination-type']
                     dst_nc_enabled = src_nc['attributes']['enabled']
@@ -602,7 +605,6 @@ def main():
     logger.setLevel(log_level)
     console_handler = logging.StreamHandler()
     console_handler.setLevel(log_level)
-    #formatter = logging.Formatter('[%(asctime)s] [%(name)s] [%(levelname)s] %(message)s')
     formatter = logging.Formatter('[%(asctime)s] [%(levelname)s] %(message)s')
     console_handler.setFormatter(formatter)
     logger.addHandler(console_handler)
