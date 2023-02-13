@@ -65,7 +65,8 @@ def migrate_workspaces(src_client, dst_client, workspaces, config=None):
                 except KeyError:
                     logger.error("Detected VCS repo on src Workspace but no config."
                                  f" mapping was provided. Skipping `{src_ws_name}`.")
-                    break
+                    #break
+                    continue
                 dst_vcs_oauth_token_id = None
                 for i in config['vcs_oauth_token_ids']:
                     if dst_vcs_oauth_token_id is not None:
@@ -91,7 +92,8 @@ def migrate_workspaces(src_client, dst_client, workspaces, config=None):
             else:
                 logger.error("Detected VCS repo on src Workspace but no config"
                              f" mapping was provided. Skipping `{src_ws_name}`.")
-                break
+                #break
+                continue
 
         # --- handle Agent Pool assignment --- #
         dst_agent_pool_id = None
@@ -300,27 +302,31 @@ def migrate_workspaces(src_client, dst_client, workspaces, config=None):
             src_ws_ssh_key_id = None
 
         if src_ws_ssh_key_id is not None:
-            logger.info(f"Assigning mapped SSH Key for `{dst_ws_name}`.")
-            try:
-                config['ssh_key_ids']
-            except KeyError:
-                logger.error("Detected SSH Key assigned to src Workspace but" 
-                             " no config mapping was provided. Skipping.")
-                break
-            dst_ws_ssh_key_id = None
-            for i in config['ssh_key_ids']:
-                if dst_ws_ssh_key_id is not None:
+            if config is not None:
+                logger.info(f"Assigning mapped SSH Key for `{dst_ws_name}`.")
+                try:
+                    config['ssh_key_ids']
+                except KeyError:
+                    logger.error("Detected SSH Key assigned to src Workspace but" 
+                                " no mapping found in config file. Skipping.")
                     break
-                for k, v in i.items():
-                    if src_ws_ssh_key_id == k:
-                        dst_ws_ssh_key_id = v
-                        logger.info(f"Assigning `{dst_ws_ssh_key_id}` to `{dst_ws_name}`.")
-                        dst_client.workspaces.assign_ssh_key(ssh_key_id=dst_ws_ssh_key_id,
-                                                             name=dst_ws_name)
+                dst_ws_ssh_key_id = None
+                for i in config['ssh_key_ids']:
+                    if dst_ws_ssh_key_id is not None:
                         break
-                    # else:
-                    #     dst_ws_ssh_key_id = None
-        
+                    for k, v in i.items():
+                        if src_ws_ssh_key_id == k:
+                            dst_ws_ssh_key_id = v
+                            logger.info(f"Assigning `{dst_ws_ssh_key_id}` to `{dst_ws_name}`.")
+                            dst_client.workspaces.assign_ssh_key(ssh_key_id=dst_ws_ssh_key_id,
+                                                                name=dst_ws_name)
+                            break
+                        # else:
+                        #     dst_ws_ssh_key_id = None
+            else:
+                logger.error("Detected SSH Key assigned to src Workspace but" 
+                             " no config mapping file was provided. Skipping.")
+
         # --- handle Notifications --- #
         src_ws_nc_list = src_client.notification_configurations.list(ws_id=src_ws_id).json()['data']
         dst_ws_nc_list = dst_client.notification_configurations.list(ws_id=dst_ws_id).json()['data']
