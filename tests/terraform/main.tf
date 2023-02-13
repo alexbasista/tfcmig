@@ -9,7 +9,6 @@ terraform {
 
 provider "tfe" {
   hostname = "abasista-tfe-lab.is.hashicorpdemo.com"
-  token    = "vgiz4b9VBLzo0w.atlasv1.dTroFwzzTqGCVhon9zoco5P0sBdJshdBSK1jBbSKNmMV31BuO1B9SiBIFCtSyLJH7Ns"
 }
 
 module "agent_pool_ws" {
