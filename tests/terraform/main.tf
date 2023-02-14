@@ -8,7 +8,7 @@ terraform {
 }
 
 provider "tfe" {
-  hostname = "abasista-tfe-lab.is.hashicorpdemo.com"
+  hostname = var.hostname
 }
 
 module "agent_pool_ws" {

@@ -1,3 +1,5 @@
+variable "hostname" {}
+
 variable "org" {}
 
 variable agent_pool_id {}
